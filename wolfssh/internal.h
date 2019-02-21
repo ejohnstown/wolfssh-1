@@ -274,12 +274,30 @@ struct WS_SFTP_GET_HANDLE_STATE;
 struct WS_SFTP_PUT_STATE;
 struct WS_SFTP_RENAME_STATE;
 
+typedef struct WS_SFTP_GET_HEADER_STATE {
+    byte buf[WOLFSSH_SFTP_HEADER];
+    word32 idx;
+} WS_SFTP_GET_HEADER_STATE;
+
 #endif /* WOLFSSH_SFTP */
 #ifdef USE_WINDOWS_API
 #ifndef WOLFSSL_MAX_ESCBUF
 #define WOLFSSL_MAX_ESCBUF 19
 #endif
 #endif
+
+
+enum WS_SFTP_ADJUST_WINDOW_STATE_ID {
+    STATE_ADJUST_WINDOW_INIT,
+    STATE_ADJUST_WINDOW_QUEUED,
+    STATE_ADJUST_WINDOW_CLEANUP
+};
+
+typedef struct WS_SFTP_ADJUST_WINDOW_STATE {
+    enum WS_SFTP_ADJUST_WINDOW_STATE_ID state;
+    word32 usedSz;
+    word32 bytesToAdd;
+} WS_SFTP_ADJUST_WINDOW_STATE;
 
 
 /* our wolfSSH session */
@@ -443,7 +461,9 @@ struct WOLFSSH {
     struct WS_SFTP_SEND_WRITE_STATE* sendWriteState;
     struct WS_SFTP_GET_HANDLE_STATE* getHandleState;
     struct WS_SFTP_RENAME_STATE* renameState;
+    struct WS_SFTP_GET_HEADER_STATE getHeaderState;
 #endif
+    struct WS_SFTP_ADJUST_WINDOW_STATE adjustWindowState;
 };
 
 

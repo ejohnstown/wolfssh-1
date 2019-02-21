@@ -499,6 +499,7 @@ WOLFSSH* SshInit(WOLFSSH* ssh, WOLFSSH_CTX* ctx)
 #ifdef WOLFSSH_SFTP
     ssh->sftpState   = SFTP_BEGIN;
 #endif
+    ssh->adjustWindowState.state = STATE_ADJUST_WINDOW_INIT;
 
     if (BufferInit(&ssh->inputBuffer, 0, ctx->heap) != WS_SUCCESS  ||
         BufferInit(&ssh->outputBuffer, 0, ctx->heap) != WS_SUCCESS ||

@@ -552,26 +552,28 @@ static int SFTP_GetHeader(WOLFSSH* ssh, word32* reqId, byte* type)
 {
     int    ret;
     word32 len;
-    byte buf[WOLFSSH_SFTP_HEADER];
 
     if (type == NULL || reqId == NULL || ssh == NULL) {
         WLOG(WS_LOG_SFTP, "NULL argument error");
         return WS_BAD_ARGUMENT;
     }
 
-    ret = wolfSSH_stream_read(ssh, buf, sizeof(buf));
-    if (ret < 0) {
-        return ret;
-    }
+    do {
+        ret = wolfSSH_stream_read(ssh, ssh->getHeaderState.buf,
+                sizeof(ssh->getHeaderState.buf) - ssh->getHeaderState.idx);
+        if (ret <= 0) {
+            if (ssh->error != WS_WANT_READ && ssh->error != WS_WANT_WRITE)
+                WMEMSET(&ssh->getHeaderState, 0, sizeof(ssh->getHeaderState));
+            return ret;
+        }
+        else
+            ssh->getHeaderState.idx += ret;
+    } while (ssh->getHeaderState.idx < WOLFSSH_SFTP_HEADER);
 
-    if (ret < WOLFSSH_SFTP_HEADER) {
-        WLOG(WS_LOG_SFTP, "Unable to read SFTP header");
-        return WS_FATAL_ERROR;
-    }
-
-    ato32(buf, &len);
-    *type = buf[LENGTH_SZ];
-    ato32(buf + UINT32_SZ + MSG_ID_SZ, reqId);
+    ato32(ssh->getHeaderState.buf, &len);
+    *type = ssh->getHeaderState.buf[LENGTH_SZ];
+    ato32(ssh->getHeaderState.buf + UINT32_SZ + MSG_ID_SZ, reqId);
+    WMEMSET(&ssh->getHeaderState, 0, sizeof(ssh->getHeaderState));
 
     return len - UINT32_SZ - MSG_ID_SZ;
 }
@@ -5953,6 +5955,11 @@ int wolfSSH_SFTP_SendReadPacket(WOLFSSH* ssh, byte* handle, word32 handleSz,
                     ret = WS_FATAL_ERROR;
                     state->state = STATE_SEND_READ_CLEANUP;
                     continue;
+    /* Due to rebase conflict, the following from the old branch is
+     * commented out.
+                    ssh->error = WS_SFTP_BAD_REQ_ID;
+                    return WS_FATAL_ERROR;
+     */
                 }
                 else
                     ssh->reqId++;
@@ -7145,7 +7152,15 @@ int wolfSSH_SFTP_Get(WOLFSSH* ssh, char* from,
                             statusCb(ssh, state->gOfst, from);
                         }
                     }
+                    fprintf(stderr, "$$$\n");
+
+                    do {
+                        ret = wolfSSH_stream_adjust_window(ssh);
+                    } while (ret != WS_SUCCESS);
+
+                    fprintf(stderr, "!!!\n");
                 } while (sz > 0 && ssh->sftpInt == 0);
+
                 if (ret != WS_SUCCESS)
                     continue;
                 if (ssh->sftpInt) {

@@ -896,6 +896,8 @@ int wolfSSH_stream_read(WOLFSSH* ssh, byte* buf, word32 bufSz)
     if (ssh == NULL || buf == NULL || bufSz == 0 || ssh->channelList == NULL)
         return WS_BAD_ARGUMENT;
 
+    wolfSSH_stream_adjust_window(ssh);
+
     inputBuffer = &ssh->channelList->inputBuffer;
 
     while (inputBuffer->length - inputBuffer->idx == 0) {
@@ -912,35 +914,87 @@ int wolfSSH_stream_read(WOLFSSH* ssh, byte* buf, word32 bufSz)
     WMEMCPY(buf, inputBuffer->buffer + inputBuffer->idx, bufSz);
     inputBuffer->idx += bufSz;
 
-    if (!ssh->isKeying && (inputBuffer->length > inputBuffer->bufferSz / 2)) {
-
-        word32 usedSz = inputBuffer->length - inputBuffer->idx;
-        word32 bytesToAdd = inputBuffer->idx;
-        int sendResult;
-
-        WLOG(WS_LOG_DEBUG, "Making more room: %u", usedSz);
-        if (usedSz) {
-            WLOG(WS_LOG_DEBUG, "  ...moving data down");
-            WMEMMOVE(inputBuffer->buffer,
-                     inputBuffer->buffer + bytesToAdd, usedSz);
-        }
-
-        sendResult = SendChannelWindowAdjust(ssh,
-                                             ssh->channelList->peerChannel,
-                                             bytesToAdd);
-        if (sendResult != WS_SUCCESS)
-            bufSz = sendResult;
-
-        WLOG(WS_LOG_INFO, "  bytesToAdd = %u", bytesToAdd);
-        WLOG(WS_LOG_INFO, "  windowSz = %u", ssh->channelList->windowSz);
-        ssh->channelList->windowSz += bytesToAdd;
-        WLOG(WS_LOG_INFO, "  update windowSz = %u", ssh->channelList->windowSz);
-
-        inputBuffer->length = usedSz;
-        inputBuffer->idx = 0;
-    }
     WLOG(WS_LOG_DEBUG, "Leaving wolfSSH_stream_read(), rxd = %d", bufSz);
     return bufSz;
+}
+
+
+int wolfSSH_stream_adjust_window(WOLFSSH* ssh)
+{
+    WS_SFTP_ADJUST_WINDOW_STATE* state;
+    Buffer* inputBuffer;
+    int sendResult = WS_SUCCESS;
+
+    WLOG(WS_LOG_DEBUG, "Entering wolfSSH_stream_adjust_window()");
+
+    if (ssh == NULL || ssh->channelList == NULL)
+        return WS_BAD_ARGUMENT;
+
+    state = &ssh->adjustWindowState;
+    inputBuffer = &ssh->channelList->inputBuffer;
+
+    for (;;) {
+        switch (state->state) {
+
+            case STATE_ADJUST_WINDOW_INIT:
+                WLOG(WS_LOG_SFTP, "SFTP ADJUST_WINDOW STATE: INIT");
+                if (!ssh->isKeying) {
+                    state->usedSz = inputBuffer->length - inputBuffer->idx;
+                    state->bytesToAdd = inputBuffer->idx;
+
+                    WLOG(WS_LOG_DEBUG, "Making more room: %u", state->usedSz);
+                    if (state->usedSz) {
+                        WLOG(WS_LOG_DEBUG, "  ...moving data down");
+                        WMEMMOVE(inputBuffer->buffer,
+                                 inputBuffer->buffer + state->bytesToAdd,
+                                 state->usedSz);
+                    }
+
+                    sendResult = SendChannelWindowAdjust(ssh,
+                            ssh->channelList->peerChannel,
+                            state->bytesToAdd);
+                    if (sendResult == WS_SUCCESS) {
+                        state->state = STATE_ADJUST_WINDOW_CLEANUP;
+                        continue;
+                    }
+                    else {
+                        state->state = STATE_ADJUST_WINDOW_QUEUED;
+                        return sendResult;
+                    }
+                }
+                else
+                    return WS_SUCCESS;
+
+            case STATE_ADJUST_WINDOW_QUEUED:
+                WLOG(WS_LOG_SFTP, "SFTP ADJUST_WINDOW STATE: QUEUED");
+                sendResult = wolfSSH_SendPacket(ssh);
+                if (sendResult != WS_SUCCESS)
+                    return sendResult;
+                FALL_THROUGH;
+
+            case STATE_ADJUST_WINDOW_CLEANUP:
+                WLOG(WS_LOG_SFTP, "SFTP ADJUST_WINDOW STATE: CLEANUP");
+                WLOG(WS_LOG_INFO, "  bytesToAdd = %u", state->bytesToAdd);
+                WLOG(WS_LOG_INFO, "  windowSz = %u",
+                        ssh->channelList->windowSz);
+
+                ssh->channelList->windowSz += state->bytesToAdd;
+
+                WLOG(WS_LOG_INFO, "  update windowSz = %u",
+                        ssh->channelList->windowSz);
+
+                inputBuffer->length = state->usedSz;
+                inputBuffer->idx = 0;
+                state->state = STATE_ADJUST_WINDOW_INIT;
+                return WS_SUCCESS;
+
+            default:
+                WLOG(WS_LOG_DEBUG, "Bad Adjust Window state, program error");
+                return WS_INPUT_CASE_E;
+        }
+    }
+
+    return WS_SUCCESS;
 }
 
 

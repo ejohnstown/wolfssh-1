@@ -184,6 +184,7 @@ WOLFSSH_API int wolfSSH_shutdown(WOLFSSH*);
 WOLFSSH_API int wolfSSH_stream_peek(WOLFSSH*, byte*, word32);
 WOLFSSH_API int wolfSSH_stream_read(WOLFSSH*, byte*, word32);
 WOLFSSH_API int wolfSSH_stream_send(WOLFSSH*, byte*, word32);
+WOLFSSH_API int wolfSSH_stream_adjust_window(WOLFSSH*);
 WOLFSSH_API int wolfSSH_stream_exit(WOLFSSH*, int);
 WOLFSSH_API int wolfSSH_extended_data_read(WOLFSSH*, byte*, word32);
 WOLFSSH_API int wolfSSH_TriggerKeyExchange(WOLFSSH*);
