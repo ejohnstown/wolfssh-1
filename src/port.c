@@ -27,6 +27,11 @@
  */
 
 
+/* Options:
+ * USE_OSE_API: Use the API for Windows operating system emulator.
+ */
+
+
 #ifdef HAVE_CONFIG_H
     #include <config.h>
 #endif
@@ -39,48 +44,78 @@
 
 
 #ifndef NO_FILESYSTEM
-int wfopen(WFILE** f, const char* filename, const char* mode)
-{
+
 #ifdef USE_WINDOWS_API
-    return fopen_s(f, filename, mode) != 0;
+
+    int wfopen(WFILE** f, const char* filename, const char* mode)
+    {
+        return fopen_s(f, filename, mode) != 0;
+    }
+
 #elif defined(WOLFSSL_NUCLEUS)
-    int m = WOLFSSH_O_CREAT;
 
-    if (WSTRSTR(mode, "r") && WSTRSTR(mode, "w")) {
-        m |= WOLFSSH_O_RDWR;
-    }
-    else {
-        if (WSTRSTR(mode, "r")) {
-            m |= WOLFSSH_O_RDONLY;
-        }
-        if (WSTRSTR(mode, "w")) {
-            m |= WOLFSSH_O_WRONLY;
-        }
-    }
+    int wfopen(WFILE** f, const char* filename, const char* mode)
+    {
+        int m = WOLFSSH_O_CREAT;
 
-    if (filename != NULL && f != NULL) {
-        if ((**f = WOPEN(filename, m, 0)) < 0) {
-            return **f;
+        if (WSTRSTR(mode, "r") && WSTRSTR(mode, "w")) {
+            m |= WOLFSSH_O_RDWR;
+        }
+        else {
+            if (WSTRSTR(mode, "r")) {
+                m |= WOLFSSH_O_RDONLY;
+            }
+            if (WSTRSTR(mode, "w")) {
+                m |= WOLFSSH_O_WRONLY;
+            }
         }
 
-        /* fopen defaults to normal */
-        if (NU_Set_Attributes(filename, 0) != NU_SUCCESS) {
-            WCLOSE(**f);
+        if (filename != NULL && f != NULL) {
+            if ((**f = WOPEN(filename, m, 0)) < 0) {
+                return **f;
+            }
+
+            /* fopen defaults to normal */
+            if (NU_Set_Attributes(filename, 0) != NU_SUCCESS) {
+                WCLOSE(**f);
+                return 1;
+            }
+            return 0;
+        }
+        else {
             return 1;
         }
-        return 0;
     }
-    else {
+
+#elif defined(MICRIUM)
+
+int wchmod(const char* path, int mode)
+{
+    (void)path;
+    (void)mode;
+    return 0;
+}
+
+
+int wutimes(const char* path, const struct timeval* times)
+{
+    (void)path;
+    (void)times;
+    return 0;
+}
+
+#else
+
+    int wfopen(WFILE** f, const char* filename, const char* mode)
+    {
+        if (f != NULL) {
+            *f = fopen(filename, mode);
+            return *f == NULL;
+        }
         return 1;
     }
-#else
-    if (f != NULL) {
-        *f = fopen(filename, mode);
-        return *f == NULL;
-    }
-    return 1;
+
 #endif
-}
 
 #if (defined(WOLFSSH_SFTP) || defined(WOLFSSH_SCP)) && \
     !defined(NO_WOLFSSH_SERVER)
@@ -116,7 +151,34 @@ int wfopen(WFILE** f, const char* filename, const char* mode)
             return ret;
         }
 
-    #else /* USE_WINDOWS_API USE_OSE_API */
+    #elif defined(MICRIUM)
+
+        int wPwrite(WFD fd, unsigned char* buf, unsigned int sz,
+                const unsigned int* shortOffset)
+        {
+            int ret;
+
+            ret = (int)WFSEEK(fd, shortOffset[0], SEEK_SET);
+            if (ret != -1)
+                ret = (int)WFWRITE(buf, 1, sz, fd);
+
+            return ret;
+        }
+
+
+        int wPread(WFD fd, unsigned char* buf, unsigned int sz,
+                const unsigned int* shortOffset)
+        {
+            int ret;
+
+            ret = (int)WFSEEK(fd, shortOffset[0], SEEK_SET);
+            if (ret != -1)
+                ret = (int)WFREAD(buf, 1, sz, fd);
+
+            return ret;
+        }
+
+    #else /* USE_WINDOWS_API USE_OSE_API MICRIUM */
 
         int wPwrite(WFD fd, unsigned char* buf, unsigned int sz,
                 const unsigned int* shortOffset)
@@ -444,13 +506,16 @@ char* wstrnstr(const char* s1, const char* s2, unsigned int n)
  * end of s1 including a null terminator. */
 char* wstrncat(char* s1, const char* s2, size_t n)
 {
-    size_t freeSpace = n - strlen(s1) - 1;
+    size_t freeSpace = n - WSTRLEN(s1) - 1;
 
-    if (freeSpace >= strlen(s2)) {
-        #ifndef USE_WINDOWS_API
-            strncat(s1, s2, freeSpace);
-        #else
+    if (freeSpace >= WSTRLEN(s2)) {
+        #ifdef USE_WINDOWS_API
             strncat_s(s1, n, s2, freeSpace);
+        #elif defined(MICRIUM)
+            Str_Cat_N((CPU_CHAR *)s1, (const CPU_CHAR *)s2,
+                    (CPU_SIZE_T)freeSpace);
+        #else
+            strncat(s1, s2, freeSpace);
         #endif
         return s1;
     }

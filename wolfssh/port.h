@@ -64,6 +64,7 @@ extern "C" {
 #endif /* !WOLFSSH_HANDLE */
 
 #ifndef NO_FILESYSTEM
+
 #ifdef WOLFSSL_NUCLEUS
     #include "storage/nu_storage.h"
 
@@ -88,15 +89,14 @@ extern "C" {
     #define WOLFSSH_O_TRUNC  PO_TRUNC
     #define WOLFSSH_O_EXCL   PO_EXCL
 
-#ifndef WOPEN
-    static inline int wOpen(const char* f, short flag, short mode)
-    {
-        /* @TODO could use PS_IWRITE only or PS_IREAD only? */
-        return NU_Open(f, PO_TEXT | flag, (PS_IWRITE | PS_IREAD));
-    }
-
-    #define WOPEN(f,m,p) wOpen((f),(m),(p))
-#endif
+    #ifndef WOPEN
+        static inline int wOpen(const char* f, short flag, short mode)
+        {
+            /* @TODO could use PS_IWRITE only or PS_IREAD only? */
+            return NU_Open(f, PO_TEXT | flag, (PS_IWRITE | PS_IREAD));
+        }
+        #define WOPEN(f,m,p) wOpen((f),(m),(p))
+    #endif
 
     #define WCLOSE(fd) NU_Close((fd))
 
@@ -129,6 +129,33 @@ extern "C" {
         }
     }
     #define WCHMOD(f,m) wChmod((f),(m))
+
+#elif defined(MICRIUM)
+
+    #include <fs_api.h>
+
+    WOLFSSH_LOCAL int wutimes(const char*, const struct timeval*);
+    WOLFSSH_LOCAL int wchmod(const char*, int);
+
+    #define WFILE             FS_FILE
+    #define WFOPEN(fn,m)      fs_fopen((fn),(m))
+    #define WFCLOSE(f)        fs_fclose(f)
+    #define WFREAD(b,s,a,f)   fs_fread((b),(s),(a),(f))
+    #define WFWRITE(b,s,a,f)  fs_fwrite((b),(s),(a),(f))
+    #define WFSEEK(s,o,w)     fs_fseek((s),(o),(w))
+    #define WFTELL(s)         fs_ftell(s)
+    #define WREWIND(s)        fs_rewind(s)
+    #define WSEEK_END         FS_SEEK_END
+    #define WUTIMES(f,t)      wutimes((f),(t))
+    #define WCHMOD(f,m)       wchmod((f),(m))
+
+    #if (defined(WOLFSSH_SCP) || defined(WOLFSSH_SFTP)) && \
+        !defined(WOLFSSH_SCP_USER_CALLBACKS)
+
+        #define WCHDIR(p)     fs_chdir(p)
+        #define WMKDIR(p,m)   fs_mkdir(p)
+    #endif
+
 #else
     #include <stdlib.h>
     #ifndef _WIN32_WCE
@@ -193,7 +220,10 @@ extern "C" {
 #endif /* NO_FILESYSTEM */
 
 /* setup string handling */
-#ifndef WSTRING_USER
+#ifdef WSTRING_USER
+
+#elif defined(USE_WINDOWS_API)
+
     #include <string.h>
 
     WOLFSSH_API char* wstrnstr(const char*, const char*, unsigned int);
@@ -212,31 +242,125 @@ extern "C" {
     #define WSTRSPN(s1,s2)    strspn((s1),(s2))
     #define WSTRCSPN(s1,s2)   strcspn((s1),(s2))
 
-    #ifdef USE_WINDOWS_API
-        #define WSTRNCPY(s1,s2,n) strncpy_s((s1),(n),(s2),(n))
-        #define WSTRNCASECMP(s1,s2,n) _strnicmp((s1),(s2),(n))
-        #define WSNPRINTF(s,n,f,...) _snprintf_s((s),(n),(n),(f),##__VA_ARGS__)
-        #define WVSNPRINTF(s,n,f,...) _vsnprintf_s((s),(n),(n),(f),##__VA_ARGS__)
-    #elif defined(MICROCHIP_MPLAB_HARMONY) || defined(MICROCHIP_PIC32)
-        #include <stdio.h>
-        #define WSTRNCPY(s1,s2,n) strncpy((s1),(s2),(n))
-        #define WSTRNCASECMP(s1, s2, n) strncmp((s1), (s2), (n))
-        #define WSNPRINTF(s,n,f,...) snprintf((s),(n),(f),##__VA_ARGS__)
-        #define WVSNPRINTF(s,n,f,...) vsnprintf((s),(n),(f),##__VA_ARGS__)
-    #elif defined(RENESAS_CSPLUS)
-        #include <stdio.h>
-        #define WSTRNCPY(s1,s2,n) strncpy((s1),(s2),(n))
-        #define WSTRNCASECMP(s1,s2,n) strncasecmp((s1),(s2),(n))
-        #define WSNPRINTF(s,n,f,...) snprintf((s),(n),(f),__VA_ARGS__)
-        #define WVSNPRINTF(s,n,f,...) vsnprintf((s),(n),(f),__VA_ARGS__)
-    #else 
-        #include <stdio.h>
-        #define WSTRNCPY(s1,s2,n) strncpy((s1),(s2),(n))
-        #define WSTRNCASECMP(s1,s2,n) strncasecmp((s1),(s2),(n))
-        #define WSNPRINTF(s,n,f,...) snprintf((s),(n),(f),##__VA_ARGS__)
-        #define WVSNPRINTF(s,n,f,...) vsnprintf((s),(n),(f),##__VA_ARGS__)
-    #endif
-#endif /* WSTRING_USER */
+    #define WSTRNCPY(s1,s2,n) strncpy_s((s1),(n),(s2),(n))
+    #define WSTRNCASECMP(s1,s2,n) _strnicmp((s1),(s2),(n))
+    #define WSNPRINTF(s,n,f,...) _snprintf_s((s),(n),(n),(f),##__VA_ARGS__)
+    #define WVSNPRINTF(s,n,f,...) _vsnprintf_s((s),(n),(n),(f),##__VA_ARGS__)
+
+#elif defined(MICROCHIP_MPLAB_HARMONY) || defined(MICROCHIP_PIC32)
+
+    #include <stdio.h>
+    #include <string.h>
+
+    WOLFSSH_API char* wstrnstr(const char*, const char*, unsigned int);
+    WOLFSSH_API char* wstrncat(char*, const char*, size_t);
+
+    #define WMEMCPY(d,s,l)    memcpy((d),(s),(l))
+    #define WMEMSET(b,c,l)    memset((b),(c),(l))
+    #define WMEMCMP(s1,s2,n)  memcmp((s1),(s2),(n))
+    #define WMEMMOVE(d,s,l)   memmove((d),(s),(l))
+
+    #define WSTRLEN(s1)       strlen((s1))
+    #define WSTRSTR(s1,s2)    strstr((s1),(s2))
+    #define WSTRNSTR(s1,s2,n) wstrnstr((s1),(s2),(n))
+    #define WSTRNCMP(s1,s2,n) strncmp((s1),(s2),(n))
+    #define WSTRNCAT(s1,s2,n) wstrncat((s1),(s2),(n))
+    #define WSTRSPN(s1,s2)    strspn((s1),(s2))
+    #define WSTRCSPN(s1,s2)   strcspn((s1),(s2))
+
+    #define WSTRNCPY(s1,s2,n) strncpy((s1),(s2),(n))
+    #define WSTRNCASECMP(s1, s2, n) strncmp((s1), (s2), (n))
+    #define WSNPRINTF(s,n,f,...) snprintf((s),(n),(f),##__VA_ARGS__)
+    #define WVSNPRINTF(s,n,f,...) vsnprintf((s),(n),(f),##__VA_ARGS__)
+
+#elif defined(RENESAS_CSPLUS)
+
+    #include <stdio.h>
+    #include <string.h>
+
+    WOLFSSH_API char* wstrnstr(const char*, const char*, unsigned int);
+    WOLFSSH_API char* wstrncat(char*, const char*, size_t);
+
+    #define WMEMCPY(d,s,l)    memcpy((d),(s),(l))
+    #define WMEMSET(b,c,l)    memset((b),(c),(l))
+    #define WMEMCMP(s1,s2,n)  memcmp((s1),(s2),(n))
+    #define WMEMMOVE(d,s,l)   memmove((d),(s),(l))
+
+    #define WSTRLEN(s1)       strlen((s1))
+    #define WSTRSTR(s1,s2)    strstr((s1),(s2))
+    #define WSTRNSTR(s1,s2,n) wstrnstr((s1),(s2),(n))
+    #define WSTRNCMP(s1,s2,n) strncmp((s1),(s2),(n))
+    #define WSTRNCAT(s1,s2,n) wstrncat((s1),(s2),(n))
+    #define WSTRSPN(s1,s2)    strspn((s1),(s2))
+    #define WSTRCSPN(s1,s2)   strcspn((s1),(s2))
+
+    #define WSTRNCPY(s1,s2,n) strncpy((s1),(s2),(n))
+    #define WSTRNCASECMP(s1,s2,n) strncasecmp((s1),(s2),(n))
+    #define WSNPRINTF(s,n,f,...) snprintf((s),(n),(f),__VA_ARGS__)
+    #define WVSNPRINTF(s,n,f,...) vsnprintf((s),(n),(f),__VA_ARGS__)
+
+#elif defined(MICRIUM)
+
+    #define WSTRLEN(pstr) ((CPU_SIZE_T)Str_Len((CPU_CHAR *)(pstr)))
+    #define WSTRNCPY(pstr_dest, pstr_src, len_max) \
+                    ((CPU_CHAR *)Str_Copy_N((CPU_CHAR *)(pstr_dest), \
+                     (CPU_CHAR *)(pstr_src), (CPU_SIZE_T)(len_max)))
+    #define WSTRNCMP(pstr_1, pstr_2, len_max) \
+                    ((CPU_INT16S)Str_Cmp_N((CPU_CHAR *)(pstr_1), \
+                     (CPU_CHAR *)(pstr_2), (CPU_SIZE_T)(len_max)))
+    #define WSTRNCASECMP(pstr_1, pstr_2, len_max) \
+                    ((CPU_INT16S)Str_CmpIgnoreCase_N((CPU_CHAR *)(pstr_1), \
+                     (CPU_CHAR *)(pstr_2), (CPU_SIZE_T)(len_max)))
+    #define WSTRSTR(pstr, pstr_srch) \
+                    ((CPU_CHAR *)Str_Str((CPU_CHAR *)(pstr), \
+                     (CPU_CHAR *)(pstr_srch)))
+    #define WSTRNSTR(pstr, pstr_srch, len_max) \
+                    ((CPU_CHAR *)Str_Str_N((CPU_CHAR *)(pstr), \
+                     (CPU_CHAR *)(pstr_srch),(CPU_SIZE_T)(len_max)))
+    #define WSTRNCAT(pstr_dest, pstr_cat, len_max) \
+                    ((CPU_CHAR *)Str_Cat_N((CPU_CHAR *)(pstr_dest), \
+                     (const CPU_CHAR *)(pstr_cat),(CPU_SIZE_T)(len_max)))
+    #define WMEMSET(pmem, data_val, size) \
+                    ((void)Mem_Set((void *)(pmem), (CPU_INT08U) (data_val), \
+                    (CPU_SIZE_T)(size)))
+    #define WMEMCPY(pdest, psrc, size) ((void)Mem_Copy((void *)(pdest), \
+                     (void *)(psrc), (CPU_SIZE_T)(size)))
+    #define WMEMCMP(pmem_1, pmem_2, size) \
+                   (((CPU_BOOLEAN)Mem_Cmp((void *)(pmem_1), (void *)(pmem_2), \
+                     (CPU_SIZE_T)(size))) ? DEF_NO : DEF_YES)
+    #define WMEMMOVE WMEMCPY
+
+    /* The status of these is unknown, at the moment. */
+    #define WSNPRINTF       snprintf
+    #define WVSNPRINTF      vsnprintf
+
+#else /* POSIX */
+
+    #include <stdio.h>
+    #include <string.h>
+
+    WOLFSSH_API char* wstrnstr(const char*, const char*, unsigned int);
+    WOLFSSH_API char* wstrncat(char*, const char*, size_t);
+
+    #define WMEMCPY(d,s,l)    memcpy((d),(s),(l))
+    #define WMEMSET(b,c,l)    memset((b),(c),(l))
+    #define WMEMCMP(s1,s2,n)  memcmp((s1),(s2),(n))
+    #define WMEMMOVE(d,s,l)   memmove((d),(s),(l))
+
+    #define WSTRLEN(s1)       strlen((s1))
+    #define WSTRSTR(s1,s2)    strstr((s1),(s2))
+    #define WSTRNSTR(s1,s2,n) wstrnstr((s1),(s2),(n))
+    #define WSTRNCMP(s1,s2,n) strncmp((s1),(s2),(n))
+    #define WSTRNCAT(s1,s2,n) wstrncat((s1),(s2),(n))
+    #define WSTRSPN(s1,s2)    strspn((s1),(s2))
+    #define WSTRCSPN(s1,s2)   strcspn((s1),(s2))
+
+    #define WSTRNCPY(s1,s2,n) strncpy((s1),(s2),(n))
+    #define WSTRNCASECMP(s1,s2,n) strncasecmp((s1),(s2),(n))
+    #define WSNPRINTF(s,n,f,...) snprintf((s),(n),(f),##__VA_ARGS__)
+    #define WVSNPRINTF(s,n,f,...) vsnprintf((s),(n),(f),##__VA_ARGS__)
+
+#endif
 
 /* get local time for debug print out */
 #ifdef USE_WINDOWS_API
@@ -246,6 +370,9 @@ extern "C" {
     #define WTIME XTIME
     #define WLOCALTIME(c,r) (localtime((c)) != NULL && \
                              WMEMCPY((r), localtime((c)), sizeof(struct tm)))
+#elif defined(MICRIUM)
+    #define WTIME            XTIME
+    #define WLOCALTIME(c,r)  XGMTIME((c),(r))
 #else
     #define WTIME time
     #define WLOCALTIME(c,r) (localtime_r((c),(r))!=NULL)
@@ -469,6 +596,37 @@ extern "C" {
     #define WCLOSEDIR(d) NU_Done((d))
     #define WREADDIR(d)  (NU_Get_Next((d)) == NU_SUCCESS)?(d):NULL
     #endif /* NO_WOLFSSH_DIR */
+#elif defined(MICRIUM)
+
+    #include <fs_file.h>
+
+    #define WSTAT_T           struct fs_stat
+    #define WRMDIR(d)         fs_rmdir((d))
+    #define WSTAT(p,b)        fs_stat((p),(b))
+    #define WLSTAT(p,b)       fs_stat((p),(b))
+    #define WREMOVE(d)        fs_remove((d))
+    #define WRENAME(o,n)      fs_rename((o),(n))
+    #define WGETCWD(r,rSz)    fs_getcwd((r),(rSz))
+
+    #define WFD struct fs_file*
+
+    #define WS_DELIM '\\'
+    #define WOLFSSH_O_RDWR   (FS_FILE_ACCESS_MODE_WR | FS_FILE_ACCESS_MODE_RD)
+    #define WOLFSSH_O_RDONLY FS_FILE_ACCESS_MODE_RD
+    #define WOLFSSH_O_WRONLY FS_FILE_ACCESS_MODE_WR
+    #define WOLFSSH_O_APPEND FS_FILE_ACCESS_MODE_APPEND
+    #define WOLFSSH_O_CREAT  FS_FILE_ACCESS_MODE_CREATE
+    #define WOLFSSH_O_TRUNC  FS_FILE_ACCESS_MODE_TRUNCATE
+    #define WOLFSSH_O_EXCL   FS_FILE_ACCESS_MODE_EXCL
+
+    #ifndef NO_WOLFSSH_DIR
+        #define WDIR          FS_DIR*
+        #define WOPENDIR(c,d) ((*(c) = fs_opendir(d)) == NULL)
+        #define WCLOSEDIR(d)  fs_closedir(*(d))
+        #define WREADDIR(d)   fs_readdir(*(d))
+        #define WREADDIR_R(d,e,r) fs_readdir_r(d,e,r)
+    #endif /* NO_WOLFSSH_DIR */
+
 #elif defined(USE_WINDOWS_API)
 
     #include <windows.h>
@@ -604,6 +762,15 @@ extern "C" {
         }
     }
     #define WIOCTL ws_Ioctl
+#elif defined(MICRIUM)
+    static inline void ws_Ioctl(int fd, int flag, int* ret)
+    {
+        (void)fd;
+        (void)flag;
+        *ret = 0;
+    }
+    #define WIOCTL ws_Ioctl
+    #define FIONREAD 0
 #elif defined(USE_WINDOWS_API)
     #define WIOCTL ioctlsocket
 #else

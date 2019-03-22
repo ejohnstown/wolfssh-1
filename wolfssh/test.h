@@ -559,7 +559,8 @@ static INLINE void tcp_listen(SOCKET_T* sockfd, word16* port, int useAnyAddr)
 #endif /* WOLFSSH_TEST_SERVER */
 
 
-#if (defined(WOLFSSH_TEST_SERVER) || defined(WOLFSSH_TEST_CLIENT))
+#if (defined(WOLFSSH_TEST_SERVER) || defined(WOLFSSH_TEST_CLIENT)) && \
+    !defined(WOLFSSH_BLOCKING_ONLY)
 
 static INLINE void tcp_set_nonblocking(SOCKET_T* sockfd)
 {

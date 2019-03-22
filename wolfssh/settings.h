@@ -45,7 +45,8 @@ extern "C" {
 #endif /* WMALLOC_USER */
 
 
-#if defined (_WIN32)
+/* Micrium can use Visual Studio for compilation, but not the Win32 API. */
+#if defined(_WIN32) && !defined(MICRIUM)
     #define USE_WINDOWS_API
     #define _CRT_SECURE_NO_WARNINGS
 #endif

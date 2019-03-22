@@ -34,10 +34,10 @@
 #include <wolfssl/wolfcrypt/wc_port.h>
 
 #ifdef NO_INLINE
-    #include <wolfssh/misc.h>
+    #include <wolfssh/ws_misc.h>
 #else
     #define WOLFSSH_MISC_INCLUDED
-    #include "src/misc.c"
+    #include "src/ws_misc.c"
 #endif
 
 
@@ -1269,7 +1269,7 @@ void wolfSSH_GetStats(WOLFSSH* ssh, word32* txCount, word32* rxCount,
 }
 
 
-int wolfSSH_KDF(byte hashId, byte keyId,
+int wolfSSH_KDF(enum wc_HashType hashId, byte keyId,
                 byte* key, word32 keySz,
                 const byte* k, word32 kSz,
                 const byte* h, word32 hSz,
@@ -1281,7 +1281,7 @@ int wolfSSH_KDF(byte hashId, byte keyId,
 }
 
 
-WS_SessionType wolfSSH_GetSessionType(const WOLFSSH* ssh)
+int wolfSSH_GetSessionType(const WOLFSSH* ssh)
 {
     WLOG(WS_LOG_DEBUG, "Entering wolfSSH_GetSessionType()");
 

@@ -132,13 +132,20 @@ void DefaultLoggingCb(enum wolfSSH_LogLevel level, const char *const msgStr)
     timeStr[0] = '\0';
 #ifndef WOLFSSH_NO_TIMESTAMP
     {
-        time_t  current;
-        struct  tm local;
+        time_t current;
+        struct tm local;
 
         current = WTIME(NULL);
         if (WLOCALTIME(&current, &local)) {
-            /* make pretty */
-            strftime(timeStr, sizeof(timeStr), "%F %T ", &local);
+            /* make pretty: YYYY-MM-DD HH:MM:SS */
+            XSNPRINTF(timeStr, sizeof(timeStr),
+                    "%04d-%02d-%02d %02d:%02d:%02d ",
+                    local.tm_year + 1900,
+                    local.tm_mon + 1,
+                    local.tm_mday,
+                    local.tm_hour,
+                    local.tm_min,
+                    local.tm_sec);
         }
     }
 #endif /* WOLFSSH_NO_TIMESTAMP */

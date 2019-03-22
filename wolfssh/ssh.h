@@ -194,7 +194,7 @@ WOLFSSH_API int wolfSSH_global_request(WOLFSSH*, const unsigned char*, word32, i
 WOLFSSH_API void wolfSSH_GetStats(WOLFSSH*,
                                   word32*, word32*, word32*, word32*);
 
-WOLFSSH_API int wolfSSH_KDF(byte, byte, byte*, word32, const byte*, word32,
+WOLFSSH_API int wolfSSH_KDF(enum wc_HashType, byte, byte*, word32, const byte*, word32,
                             const byte*, word32, const byte*, word32);
 
 #ifdef USE_WINDOWS_API
@@ -209,7 +209,7 @@ typedef enum {
     WOLFSSH_SESSION_TERMINAL,
 } WS_SessionType;
 
-WOLFSSH_API WS_SessionType wolfSSH_GetSessionType(const WOLFSSH*);
+WOLFSSH_API int wolfSSH_GetSessionType(const WOLFSSH*);
 WOLFSSH_API const char* wolfSSH_GetSessionCommand(const WOLFSSH*);
 WOLFSSH_API int wolfSSH_SetChannelType(WOLFSSH*, byte, byte*, word32);
 WOLFSSH_API void wolfSSH_CheckReceivePending(WOLFSSH* ssh);

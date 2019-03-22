@@ -1,4 +1,4 @@
-/* misc.c
+/* ws_misc.c
  *
  * Copyright (C) 2014-2019 wolfSSL Inc.
  *
@@ -39,20 +39,20 @@
 #define WOLFSSH_MISC_C
 
 
-#include <wolfssh/misc.h>
+#include <wolfssh/ws_misc.h>
 #include <wolfssh/log.h>
 
 
 #ifdef NO_INLINE
-    #define STATIC
+    #define WS_STATIC
 #else
-    #define STATIC static
+    #define WS_STATIC static
 #endif
 
 
-/* Check for if compiling misc.c when not needed. */
+/* Check for if compiling ws_misc.c when not needed. */
 #if !defined(WOLFSSH_MISC_INCLUDED) && !defined(NO_INLINE)
-    #define MISC_WARNING "misc.c does not need to be compiled when using inline (NO_INLINE not defined))"
+    #define MISC_WARNING "ws_misc.c does not need to be compiled when using inline (NO_INLINE not defined))"
 
     #ifndef _MSC_VER
         #warning MISC_WARNING
@@ -64,22 +64,24 @@
 
 
 #ifndef min
-STATIC INLINE word32 min(word32 a, word32 b)
+WS_STATIC INLINE word32 min(word32 a, word32 b)
 {
     return a > b ? b : a;
 }
 #endif /* min */
 
 
+#ifndef MICRIUM
+
 /* convert opaque to 32 bit integer */
-STATIC INLINE void ato32(const byte* c, word32* u32)
+WS_STATIC INLINE void ato32(const byte* c, word32* u32)
 {
     *u32 = (c[0] << 24) | (c[1] << 16) | (c[2] << 8) | c[3];
 }
 
 
 /* convert 32 bit integer to opaque */
-STATIC INLINE void c32toa(word32 u32, byte* c)
+WS_STATIC INLINE void c32toa(word32 u32, byte* c)
 {
     c[0] = (u32 >> 24) & 0xff;
     c[1] = (u32 >> 16) & 0xff;
@@ -89,7 +91,7 @@ STATIC INLINE void c32toa(word32 u32, byte* c)
 
 
 /* Make sure compiler doesn't skip */
-STATIC INLINE void ForceZero(const void* mem, word32 length)
+WS_STATIC INLINE void ForceZero(const void* mem, word32 length)
 {
     volatile byte* z = (volatile byte*)mem;
 
@@ -98,7 +100,7 @@ STATIC INLINE void ForceZero(const void* mem, word32 length)
 
 
 /* check all length bytes for equality, return 0 on success */
-STATIC INLINE int ConstantCompare(const byte* a, const byte* b,
+WS_STATIC INLINE int ConstantCompare(const byte* a, const byte* b,
                                   word32 length)
 {
     word32 i;
@@ -111,6 +113,8 @@ STATIC INLINE int ConstantCompare(const byte* a, const byte* b,
     return compareSum;
 }
 
+#endif /* MICRIUM */
+
 
 /* create mpint type
  *
@@ -122,7 +126,7 @@ STATIC INLINE int ConstantCompare(const byte* a, const byte* b,
  * If a padding value is needed then "pad" is set to 1
  *
  */
-STATIC INLINE void CreateMpint(byte* buf, word32* sz, byte* pad)
+WS_STATIC INLINE void CreateMpint(byte* buf, word32* sz, byte* pad)
 {
     word32 i;
 
@@ -151,7 +155,7 @@ STATIC INLINE void CreateMpint(byte* buf, word32* sz, byte* pad)
         *sz = *sz - i;
     }
 }
-#undef STATIC
+#undef WS_STATIC
 
 
 #endif /* !WOLFSSL_MISC_INCLUDED && !NO_INLINE */

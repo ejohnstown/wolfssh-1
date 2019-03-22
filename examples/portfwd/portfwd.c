@@ -20,6 +20,7 @@
 
 #define WOLFSSH_TEST_CLIENT
 #define WOLFSSH_TEST_SERVER
+#define WOLFSSH_BLOCKING_ONLY
 
 
 #include <stdio.h>

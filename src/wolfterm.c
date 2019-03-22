@@ -31,9 +31,10 @@
 #include <wolfssh/log.h>
 
 #ifdef NO_INLINE
-    #include <wolfssh/misc.h>
+    #include <wolfssh/ws_misc.h>
 #else
     #define WOLFSSH_MISC_INCLUDED
+    #include "src/ws_misc.c"
 #endif
 
 
