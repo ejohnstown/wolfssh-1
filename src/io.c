@@ -141,6 +141,8 @@ void* wolfSSH_GetIOWriteCtx(WOLFSSH* ssh)
         #include "nucleus.h"
         #include "networking/nu_networking.h"
         #include <errno.h>
+    #elif defined(MICRIUM)
+        #include <net_sock.h>
     #else
         #include <sys/types.h>
         #include <errno.h>
@@ -229,6 +231,8 @@ void* wolfSSH_GetIOWriteCtx(WOLFSSH* ssh)
     #define SOCKET_EPIPE       NU_NOT_CONNECTED
     #define SOCKET_ECONNREFUSED NU_CONNECTION_REFUSED
     #define SOCKET_ECONNABORTED NU_NOT_CONNECTED
+#elif defined(MICRIUM)
+    /* Using direct micrium function. */
 #else
     #define SOCKET_EWOULDBLOCK EWOULDBLOCK
     #define SOCKET_EAGAIN      EAGAIN
@@ -263,8 +267,77 @@ void* wolfSSH_GetIOWriteCtx(WOLFSSH* ssh)
 #endif
 
 
+#if defined(MICRIUM)
+
+/* Micrium uTCP/IP port, using the NetSock API
+ * TCP is currently supported with the callbacks below.
+ */
+
+/* The Micrium uTCP/IP send callback
+ * return : bytes sent, or error
+ */
+int wsEmbedSend(WOLFSSH* ssh, void* buf, word32 sz, void* ctx)
+{
+    NET_SOCK_ID sd = *(int*)ctx;
+    NET_SOCK_RTN_CODE ret;
+    NET_ERR err;
+
+    ret = NetSock_TxData(sd, buf, sz, ssh->wflags, &err);
+    if (ret < 0) {
+        WLOG(WS_LOG_DEBUG,"Embed Send error");
+
+        if (err == NET_ERR_TX) {
+            WLOG(WS_LOG_DEBUG,"    Would Block");
+            return WS_CBIO_ERR_WANT_WRITE;
+
+        }
+        else {
+            WLOG(WS_LOG_DEBUG,"    General error");
+            return WS_CBIO_ERR_GENERAL;
+        }
+    }
+
+    return ret;
+}
+
+
+/* The Micrium uTCP/IP receive callback
+ *  return : nb bytes read, or error
+ */
+int wsEmbedRecv(WOLFSSH *ssh, void* buf, word32 sz, void *ctx)
+{
+    NET_SOCK_ID sd = *(int*)ctx;
+    NET_SOCK_RTN_CODE ret;
+    NET_ERR err;
+
+    ret = NetSock_RxData(sd, buf, sz, ssh->rflags, &err);
+    if (ret < 0) {
+        WLOG(WS_LOG_DEBUG,"Embed Send error");
+
+        if (err == NET_ERR_RX || err == NET_SOCK_ERR_RX_Q_EMPTY ||
+            err == NET_ERR_FAULT_LOCK_ACQUIRE) {
+
+            WLOG(WS_LOG_DEBUG,"    Would Block");
+            return WS_CBIO_ERR_WANT_READ;
+        }
+        else if (err == NET_SOCK_ERR_CLOSED) {
+            WLOG(WS_LOG_DEBUG,"    Embed receive connection closed");
+            return WS_CBIO_ERR_CONN_CLOSE;
+
+        }
+        else {
+            WLOG(WS_LOG_DEBUG,"    General error");
+            return WS_CBIO_ERR_GENERAL;
+        }
+    }
+
+    return ret;
+}
+
+#else /* POSIX WINDOWS MQX NUCLEUS */
+
 /* Translates return codes returned from send() and recv() if need be. */
-static INLINE int TranslateReturnCode(int old, WS_SOCKET_T sd)
+static INLINE int TranslateReturnCode(int old, int sd)
 {
     (void)sd;
 
@@ -435,7 +508,7 @@ int wsEmbedSend(WOLFSSH* ssh, void* data, word32 sz, void* ctx)
     return sent;
 }
 
-
+#endif
 
 #endif /* WOLFSSH_USER_IO */
 

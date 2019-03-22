@@ -41,10 +41,10 @@
 #include <wolfssl/wolfcrypt/signature.h>
 
 #ifdef NO_INLINE
-    #include <wolfssh/misc.h>
+    #include <wolfssh/ws_misc.h>
 #else
     #define WOLFSSH_MISC_INCLUDED
-    #include "src/misc.c"
+    #include "src/ws_misc.c"
 #endif
 
 
@@ -692,7 +692,7 @@ int wolfSSH_ProcessBuffer(WOLFSSH_CTX* ctx,
 }
 
 
-int GenerateKey(byte hashId, byte keyId,
+int GenerateKey(enum wc_HashType hashId, byte keyId,
                 byte* key, word32 keySz,
                 const byte* k, word32 kSz,
                 const byte* h, word32 hSz,
@@ -809,7 +809,7 @@ static int GenerateKeys(WOLFSSH* ssh)
 {
     Keys* cK;
     Keys* sK;
-    byte hashId;
+    enum wc_HashType hashId;
     int ret = WS_SUCCESS;
 
     if (ssh == NULL)
@@ -3322,7 +3322,7 @@ static int DoUserAuthRequestPassword(WOLFSSH* ssh, WS_UserAuthData* authData,
 /* Utility for DoUserAuthRequestPublicKey() */
 /* returns negative for error, positive is size of digest. */
 static int DoUserAuthRequestRsa(WOLFSSH* ssh, WS_UserAuthData_PublicKey* pk,
-                                byte hashId, byte* digest, word32 digestSz)
+                                enum wc_HashType hashId, byte* digest, word32 digestSz)
 {
     RsaKey key;
     enum wc_HashType enmhashId = (enum wc_HashType)hashId;
@@ -3443,7 +3443,7 @@ static int DoUserAuthRequestRsa(WOLFSSH* ssh, WS_UserAuthData_PublicKey* pk,
 /* Utility for DoUserAuthRequestPublicKey() */
 /* returns negative for error, positive is size of digest. */
 static int DoUserAuthRequestEcc(WOLFSSH* ssh, WS_UserAuthData_PublicKey* pk,
-                                byte hashId, byte* digest, word32 digestSz)
+                                enum wc_HashType hashId, byte* digest, word32 digestSz)
 {
     ecc_key key;
     const byte* publicKeyType;

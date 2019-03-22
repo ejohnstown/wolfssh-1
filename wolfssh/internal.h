@@ -225,7 +225,7 @@ typedef struct HandshakeInfo {
     byte pubKeyId;
     byte encryptId;
     byte macId;
-    byte hashId;
+    enum wc_HashType hashId;
     byte kexPacketFollows;
     byte aeadMode;
 
@@ -503,8 +503,8 @@ WOLFSSH_LOCAL int wolfSSH_ProcessBuffer(WOLFSSH_CTX*,
 #ifndef WOLFSSH_USER_IO
 
 /* default I/O handlers */
-WOLFSSH_LOCAL int wsEmbedRecv(WOLFSSH*, void*, word32, void*);
-WOLFSSH_LOCAL int wsEmbedSend(WOLFSSH*, void*, word32, void*);
+WOLFSSH_API int wsEmbedRecv(WOLFSSH*, void*, word32, void*);
+WOLFSSH_API int wsEmbedSend(WOLFSSH*, void*, word32, void*);
 
 #endif /* WOLFSSH_USER_IO */
 
@@ -545,8 +545,9 @@ WOLFSSH_LOCAL int SendChannelWindowAdjust(WOLFSSH*, word32, word32);
 WOLFSSH_LOCAL int SendChannelRequest(WOLFSSH*, byte*, word32);
 WOLFSSH_LOCAL int SendChannelTerminalRequest(WOLFSSH* ssh);
 WOLFSSH_LOCAL int SendChannelSuccess(WOLFSSH*, word32, int);
-WOLFSSH_LOCAL int GenerateKey(byte, byte, byte*, word32, const byte*, word32,
-                              const byte*, word32, const byte*, word32);
+WOLFSSH_LOCAL int GenerateKey(enum wc_HashType, byte, byte*, word32,
+                              const byte*, word32, const byte*, word32,
+                              const byte*, word32);
 
 
 enum AcceptStates {

@@ -41,10 +41,10 @@
 
 
 #ifdef NO_INLINE
-    #include <wolfssh/misc.h>
+    #include <wolfssh/ws_misc.h>
 #else
     #define WOLFSSH_MISC_INCLUDED
-    #include "src/misc.c"
+    #include "src/ws_misc.c"
 #endif
 
 #if defined(NO_FILESYSTEM) && !defined(WOLFSSH_SCP_USER_CALLBACKS)
