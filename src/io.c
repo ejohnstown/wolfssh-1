@@ -274,15 +274,16 @@ void* wolfSSH_GetIOWriteCtx(WOLFSSH* ssh)
  */
 
 /* The Micrium uTCP/IP send callback
+ * This expects that the NET_SOCK_ID was set with wolfSSH_set_fd().
  * return : bytes sent, or error
  */
 int wsEmbedSend(WOLFSSH* ssh, void* buf, word32 sz, void* ctx)
 {
-    NET_SOCK_ID sd = *(int*)ctx;
+    WS_SOCKET_T sd = *(WS_SOCKET_T*)ctx;
     NET_SOCK_RTN_CODE ret;
     NET_ERR err;
 
-    ret = NetSock_TxData(sd, buf, sz, ssh->wflags, &err);
+    ret = NetSock_TxData((NET_SOCK_ID)sd, buf, sz, ssh->wflags, &err);
     if (ret < 0) {
         WLOG(WS_LOG_DEBUG,"Embed Send error");
 
@@ -302,15 +303,16 @@ int wsEmbedSend(WOLFSSH* ssh, void* buf, word32 sz, void* ctx)
 
 
 /* The Micrium uTCP/IP receive callback
+ * This expects that the NET_SOCK_ID was set with wolfSSH_set_fd().
  *  return : nb bytes read, or error
  */
 int wsEmbedRecv(WOLFSSH *ssh, void* buf, word32 sz, void *ctx)
 {
-    NET_SOCK_ID sd = *(int*)ctx;
+    WS_SOCKET_T sd = *(WS_SOCKET_T*)ctx;
     NET_SOCK_RTN_CODE ret;
     NET_ERR err;
 
-    ret = NetSock_RxData(sd, buf, sz, ssh->rflags, &err);
+    ret = NetSock_RxData((NET_SOCK_ID)sd, buf, sz, ssh->rflags, &err);
     if (ret < 0) {
         WLOG(WS_LOG_DEBUG,"Embed Send error");
 
