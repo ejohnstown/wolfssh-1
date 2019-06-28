@@ -1664,9 +1664,10 @@ int wolfSSH_SFTP_RecvOpen(WOLFSSH* ssh, int reqId, byte* data, word32 maxSz)
             else
                 *cur = 'w';
             cur++;
-            if (reason & WOLFSSH_FXF_READ)
+            if (reason & WOLFSSH_FXF_READ) {
                 *cur = '+';
-            cur++;
+                cur++;
+            }
         }
         else if (reason & WOLFSSH_FXF_READ) {
             *cur = 'r';
@@ -2316,7 +2317,7 @@ static int wolfSSH_SFTPNAME_readdir(WOLFSSH* ssh, WDIR* dir, WS_SFTPNAME* out,
     }
 
     nameSz = WREADDIR_R(*dir, &entry, &result);
-    if (nameSz != 0) {
+    if (nameSz != 0 || result == NULL) {
         return WS_FATAL_ERROR;
     }
 
@@ -2583,12 +2584,15 @@ int wolfSSH_SFTP_RecvReadDir(WOLFSSH* ssh, int reqId, byte* data, word32 maxSz)
         do {
             name = wolfSSH_SFTPNAME_new(ssh->ctx->heap);
             ret = wolfSSH_SFTPNAME_readdir(ssh, &dir, name, dirName);
-            if (ret == WS_SUCCESS || ret == WS_NEXT_ERROR) {
+            if (ret == WS_SUCCESS) {
                 count++;
                 outSz += name->fSz + name->lSz + (UINT32_SZ * 2);
                 outSz += SFTP_AtributesSz(ssh, &name->atrb);
                 name->next = list;
                 list = name;
+            }
+            else if (ret == WS_NEXT_ERROR) {
+                cur->isEof = 1;
             }
             else {
                 wolfSSH_SFTPNAME_free(name);

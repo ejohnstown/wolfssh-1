@@ -8494,7 +8494,7 @@ void clean_path(char* path)
     long sz = (long)WSTRLEN(path);
     byte found;
 
-#if defined(WOLFSSL_NUCLEUS) || defined(USE_WINDOWS_API)
+#if defined(WOLFSSL_NUCLEUS) || defined(USE_WINDOWS_API) || defined(MICRIUM)
     for (i = 0; i < sz; i++) {
         if (path[i] == '/') path[i] = '\\';
     }
@@ -8564,7 +8564,7 @@ void clean_path(char* path)
             }
         } while (found);
 
-#if defined(WOLFSSL_NUCLEUS) || defined(USE_WINDOWS_API)
+#if defined(WOLFSSL_NUCLEUS) || defined(USE_WINDOWS_API) || defined(MICRIUM)
         sz = (long)WSTRLEN(path);
 
         if (path[sz - 1] == ':') {
