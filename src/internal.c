@@ -6270,18 +6270,20 @@ int SendNewKeys(WOLFSSH* ssh)
 
 #ifdef HAVE_AES_CBC
             case ID_AES128_CBC:
-#endif
-#ifdef WOLFSSL_AES_COUNTER
-            case ID_AES128_CTR:
-#endif
-#if defined(HAVE_AES_CBC) || defined(WOLFSSL_AES_COUNTER)
-                WLOG(WS_LOG_DEBUG, "SNK: using cipher aes128-cbc/ctr");
+                WLOG(WS_LOG_DEBUG, "SNK: using cipher aes128-cbc");
                 ret = wc_AesSetKey(&ssh->encryptCipher.aes,
                                   ssh->keys.encKey, ssh->keys.encKeySz,
                                   ssh->keys.iv, AES_ENCRYPTION);
                 break;
 #endif
-
+#ifdef WOLFSSL_AES_COUNTER
+            case ID_AES128_CTR:
+                WLOG(WS_LOG_DEBUG, "SNK: using cipher aes128-ctr");
+                ret = wc_AesSetKey(&ssh->encryptCipher.aes,
+                                  ssh->keys.encKey, ssh->keys.encKeySz,
+                                  ssh->keys.iv, AES_ENCRYPTION);
+                break;
+#endif
 #ifdef HAVE_AESGCM
             case ID_AES128_GCM:
                 WLOG(WS_LOG_DEBUG, "SNK: using cipher aes128-gcm");
