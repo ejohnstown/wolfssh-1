@@ -270,6 +270,7 @@ enum WS_DisconnectReasonCodes {
 
 
 WOLFSSH_API void wolfSSH_ShowSizes(void);
+WOLFSSH_API void wolfSSH_CleanPath(char*);
 
 
 #ifndef WOLFSSH_MAX_FILENAME
