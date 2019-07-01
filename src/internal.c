@@ -8569,7 +8569,7 @@ int SendChannelSuccess(WOLFSSH* ssh, word32 channelId, int success)
 #if (defined(WOLFSSH_SFTP) || defined(WOLFSSH_SCP)) && \
     !defined(NO_WOLFSSH_SERVER)
 /* cleans up absolute path */
-void clean_path(char* path)
+void wolfSSH_CleanPath(char* path)
 {
     int  i;
     long sz = (long)WSTRLEN(path);
@@ -8643,7 +8643,7 @@ void clean_path(char* path)
 
                         /* case of at / */
                         if (WSTRLEN(path) == 0) {
-                           path[0] = '/';
+                           path[0] = WS_DELIM;
                            path[1] = '\0';
                         }
 
@@ -8664,16 +8664,16 @@ void clean_path(char* path)
 
         /* clean up any multiple drive listed i.e. A:/A: */
         {
-            int i,j;
+            int x,y;
             sz = (long)WSTRLEN(path);
-            for (i = 0, j = 0; i < sz; i++) {
-                if (path[i] == ':') {
-                    if (j == 0) j = i;
+            for (x = 0, y = 0; x < sz; x++) {
+                if (path[x] == ':') {
+                    if (y == 0) y = x;
                     else {
                         /* @TODO only checking once */
-                        WMEMMOVE(path, path + i - WS_DRIVE_SIZE,
-                                sz - i + WS_DRIVE_SIZE);
-                        path[sz - i + WS_DRIVE_SIZE] = '\0';
+                        WMEMMOVE(path, path + x - WS_DRIVE_SIZE,
+                                sz - x + WS_DRIVE_SIZE);
+                        path[sz - x + WS_DRIVE_SIZE] = '\0';
                         break;
                     }
                 }
