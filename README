@@ -20,6 +20,10 @@ configured with keygen: `--enable-keygen`.
 If the bulk of wolfSSL code isn't desired, wolfSSL can be configured with
 the crypto only option: `--enable-cryptonly`.
 
+For Windows builds, when pulling the wolfSSL source from version control, the
+file wolfssl/options.h will not be present; it is created by configure. Copy
+the file wolfssl/options.h.in to wolfssl/options.h.
+
 
 building
 --------
@@ -43,6 +47,7 @@ to a lower size. It can also be increased in desktop use cases to help with
 large file transfers. By default channels are set to handle 16,384 bytes of data
 being sent and received. An example of setting a window size for new channels
 would be as follows "./configure CPPFLAGS=-DDEFAULT_WINDOW_SZ=16384"
+
 
 examples
 --------

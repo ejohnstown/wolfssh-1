@@ -339,7 +339,7 @@ int wsEmbedRecv(WOLFSSH *ssh, void* buf, word32 sz, void *ctx)
 #else /* POSIX WINDOWS MQX NUCLEUS */
 
 /* Translates return codes returned from send() and recv() if need be. */
-static INLINE int TranslateReturnCode(int old, int sd)
+static INLINE int TranslateReturnCode(int old, WS_SOCKET_T sd)
 {
     (void)sd;
 

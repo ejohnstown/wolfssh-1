@@ -29,6 +29,8 @@
 
 #pragma once
 
+#include <wolfssl/options.h>
+#include <wolfssl/wolfcrypt/types.h>
 #include <wolfssh/settings.h>
 #include <wolfssh/log.h>
 
@@ -1075,7 +1077,7 @@ extern "C" {
 
     #define WFD struct fs_file*
 
-    #define WS_DELIM '\\'
+    #define WS_DELIM '/'
     #define WOLFSSH_O_RDWR   (FS_FILE_ACCESS_MODE_WR | FS_FILE_ACCESS_MODE_RD)
     #define WOLFSSH_O_RDONLY FS_FILE_ACCESS_MODE_RD
     #define WOLFSSH_O_WRONLY FS_FILE_ACCESS_MODE_WR
@@ -1118,7 +1120,7 @@ extern "C" {
     int wPread(WFD, unsigned char*, unsigned int, const unsigned int*);
     #define WPWRITE(fd,b,s,o) wPwrite((fd),(b),(s),(o))
     #define WPREAD(fd,b,s,o)  wPread((fd),(b),(s),(o))
-    #define WS_DELIM          '\\'
+    #define WS_DELIM          '/'
 
     #define WOLFSSH_O_RDWR    _O_RDWR
     #define WOLFSSH_O_RDONLY  _O_RDONLY
