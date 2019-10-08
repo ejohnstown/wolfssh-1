@@ -8574,16 +8574,16 @@ void wolfSSH_CleanPath(char* path)
 
         /* clean up any multiple drive listed i.e. A:/A: */
         {
-            int x,y;
+            int j;
             sz = (long)WSTRLEN(path);
-            for (x = 0, y = 0; x < sz; x++) {
-                if (path[x] == ':') {
-                    if (y == 0) y = x;
+            for (i = 0, j = 0; i < sz; i++) {
+                if (path[i] == ':') {
+                    if (j == 0) j = i;
                     else {
                         /* @TODO only checking once */
-                        WMEMMOVE(path, path + x - WS_DRIVE_SIZE,
-                                sz - x + WS_DRIVE_SIZE);
-                        path[sz - x + WS_DRIVE_SIZE] = '\0';
+                        WMEMMOVE(path, path + i - WS_DRIVE_SIZE,
+                                sz - i + WS_DRIVE_SIZE);
+                        path[sz - i + WS_DRIVE_SIZE] = '\0';
                         break;
                     }
                 }
