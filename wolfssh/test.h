@@ -727,6 +727,8 @@ typedef struct tcp_ready {
 #if defined(_POSIX_THREADS) && !defined(__MINGW32__)
     pthread_mutex_t mutex;
     pthread_cond_t  cond;
+#elif defined(USE_WINDOWS_API)
+    HANDLE tcpReady;
 #endif
 } tcp_ready;
 
@@ -759,6 +761,8 @@ static INLINE void InitTcpReady(tcp_ready* ready)
 #elif defined(_POSIX_THREADS) && !defined(__MINGW32__)
     pthread_mutex_init(&ready->mutex, 0);
     pthread_cond_init(&ready->cond, 0);
+#elif defined(USE_WINDOWS_API)
+    ready->tcpReady = CreateEvent(NULL, TRUE, FALSE, TEXT("TCPReady"));
 #endif
 }
 
@@ -770,6 +774,8 @@ static INLINE void FreeTcpReady(tcp_ready* ready)
 #elif defined(_POSIX_THREADS) && !defined(__MINGW32__)
     pthread_mutex_destroy(&ready->mutex);
     pthread_cond_destroy(&ready->cond);
+#elif defined(USE_WINDOWS_API)
+    CloseHandle(ready->tcpReady);
 #else
     (void)ready;
 #endif
@@ -786,6 +792,19 @@ static INLINE void WaitTcpReady(func_args* args)
     args->signal->ready = 0; /* reset */
 
     pthread_mutex_unlock(&args->signal->mutex);
+#elif defined(USE_WINDOWS_API)
+    {
+        DWORD result;
+
+        result = WaitForSingleObject(args->signal->tcpReady, INFINITE);
+        if (result == WAIT_OBJECT_0) {
+            printf("Event posted\n");
+            args->signal->ready = 0;
+        }
+        else {
+            printf("Event failed\n");
+        }
+    }
 #else
     (void)args;
 #endif

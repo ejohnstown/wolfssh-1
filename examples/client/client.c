@@ -628,8 +628,10 @@ THREAD_RETURN WOLFSSH_THREAD client_test(void* args)
     WCLOSESOCKET(sockFd);
     wolfSSH_free(ssh);
     wolfSSH_CTX_free(ctx);
-    if (ret != WS_SUCCESS)
-        err_sys("Closing stream failed. Connection could have been closed by peer");
+    if (ret != WS_SUCCESS) {
+        fprintf(stderr, "Closing stream failed. "
+                "Connection could have been closed by peer\n");
+    }
 
 #if defined(HAVE_ECC) && defined(FP_ECC) && defined(HAVE_THREAD_LS)
     wc_ecc_fp_free();  /* free per thread cache */

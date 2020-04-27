@@ -37,6 +37,8 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\examples\client\client.c" />
     <ClCompile Include="..\..\..\examples\echoserver\echoserver.c" />
+    <ClCompile Include="..\..\..\examples\sftpclient\sftpclient.c" />
+    <ClCompile Include="..\..\..\tests\sftp.c" />
     <ClCompile Include="..\..\..\tests\testsuite.c" />
   </ItemGroup>
   <ItemGroup>

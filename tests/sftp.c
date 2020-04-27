@@ -124,7 +124,8 @@ int test_SFTP(int flag)
     int ret = 0;
     int argsCount;
 
-    const char* args[10];
+    const char* argsServer[10];
+    const char* argsClient[10];
     char  portNumber[8];
 
     THREAD_TYPE serThread;
@@ -135,16 +136,16 @@ int test_SFTP(int flag)
     commandIdx = 0;
 
     argsCount = 0;
-    args[argsCount++] = ".";
-    args[argsCount++] = "-1";
+    argsServer[argsCount++] = ".";
+    argsServer[argsCount++] = "-1";
 #ifndef USE_WINDOWS_API
-    args[argsCount++] = "-p";
-    args[argsCount++] = "0";
+    argsServer[argsCount++] = "-p";
+    argsServer[argsCount++] = "0";
 #endif
     if (flag)
-        args[argsCount++] = "-N";
+        argsServer[argsCount++] = "-N";
 
-    ser.argv   = (char**)args;
+    ser.argv   = (char**)argsServer;
     ser.argc    = argsCount;
     ser.signal = &ready;
     InitTcpReady(ser.signal);
@@ -152,23 +153,21 @@ int test_SFTP(int flag)
     WaitTcpReady(&ser);
 
     argsCount = 0;
-    args[argsCount++] = ".";
-    args[argsCount++] = "-u";
-    args[argsCount++] = "jill";
-    args[argsCount++] = "-P";
-    args[argsCount++] = "upthehill";
-    args[argsCount++] = "-p";
+    argsClient[argsCount++] = ".";
+    argsClient[argsCount++] = "-u";
+    argsClient[argsCount++] = "jill";
+    argsClient[argsCount++] = "-P";
+    argsClient[argsCount++] = "upthehill";
+    argsClient[argsCount++] = "-p";
 
-#ifndef USE_WINDOWS_API
     /* use port that server has found */
     snprintf(portNumber, sizeof(portNumber), "%d", ready.port);
-    args[argsCount++] = portNumber;
-#endif
+    argsClient[argsCount++] = portNumber;
 
     if (flag)
-        args[argsCount++] = "-N";
+        argsClient[argsCount++] = "-N";
 
-    cli.argv    = (char**)args;
+    cli.argv    = (char**)argsClient;
     cli.argc    = argsCount;
     cli.signal  = &ready;
     cli.sftp_cb = commandCb;

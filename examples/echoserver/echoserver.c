@@ -848,6 +848,11 @@ static void SignalTcpReady(func_args* serverArgs, word16 port)
     ready->port = port;
     pthread_cond_signal(&ready->cond);
     pthread_mutex_unlock(&ready->mutex);
+#elif defined(USE_WINDOWS_API) && defined(NO_MAIN_DRIVER)
+    tcp_ready* ready = serverArgs->signal;
+    ready->ready = 1;
+    ready->port = port;
+    SetEvent(ready->tcpReady);
 #else
     (void)serverArgs;
     (void)port;
@@ -1110,6 +1115,7 @@ THREAD_RETURN WOLFSSH_THREAD echoserver_test(void* args)
     wc_FreeMutex(&doneLock);
     PwMapListDelete(&pwMapList);
     wolfSSH_CTX_free(ctx);
+    WCLOSESOCKET(listenFd);
     if (wolfSSH_Cleanup() != WS_SUCCESS) {
         fprintf(stderr, "Couldn't clean up wolfSSH.\n");
         exit(EXIT_FAILURE);
