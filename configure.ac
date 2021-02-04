@@ -88,6 +88,16 @@ AC_ARG_ENABLE([examples],
     [AS_HELP_STRING([--disable-examples],[Disable examples (default: enabled)])],
     [ENABLED_EXAMPLES=$enableval],[ENABLED_EXAMPLES=yes])
 
+# Server Build
+AC_ARG_ENABLE([server],
+    [AS_HELP_STRING([--disable-server],[Disable server code (default: enabled)])],
+    [ENABLED_SERVER=$enableval],[ENABLED_SERVER=yes])
+
+# Client Build
+AC_ARG_ENABLE([client],
+    [AS_HELP_STRING([--disable-client],[Disable client code (default: enabled)])],
+    [ENABLED_CLIENT=$enableval],[ENABLED_CLIENT=yes])
+
 # Key Generation
 AC_ARG_ENABLE([keygen],
     [AS_HELP_STRING([--enable-keygen],[Enable key generation (default: disabled)])],
@@ -133,6 +143,9 @@ AC_ARG_ENABLE([distro],
     [AS_HELP_STRING([--enable-distro],[Enable wolfSSH distro build (default: disabled)])],
     [ENABLED_DISTRO=$enableval],[ENABLED_DISTRO=no])
 
+# Check for option conflicts
+AS_IF([test "x$ENABLED_SERVER" = "xno" && test "x$ENABLED_CLIENT" = "xno"],AC_MSG_ERROR([You disabled both the client side code and server side code.]))
+
 # Update the ENABLED flags for options that affect other options.
 AS_IF([test "x$ENABLED_DISTRO" = "xyes"],
       [ENABLED_ALL=yes; enable_shared=yes; enable_static=yes])
@@ -155,10 +168,10 @@ AS_IF([test "x$ENABLED_PTERM" = "xyes"],
 AS_IF([test "x$ENABLED_SHELL" = "xyes"],
       [AM_CPPFLAGS="$AM_CPPFLAGS -DWOLFSSH_SHELL"])
 AS_IF([test "x$ENABLED_AGENT" = "xyes"],[AM_CPPFLAGS="$AM_CPPFLAGS -DWOLFSSH_AGENT"])
+AS_IF([test "x$ENABLED_SERVER" = "xno"],[AM_CPPFLAGS="$AM_CPPFLAGS -DNO_WOLFSSH_SERVER"])
+AS_IF([test "x$ENABLED_CLIENT" = "xno"],[AM_CPPFLAGS="$AM_CPPFLAGS -DNO_WOLFSSH_CLIENT"])
 
 # Set the automake conditionals.
-AM_CONDITIONAL([BUILD_EXAMPLE_SERVERS],[test "x$ENABLED_EXAMPLES" = "xyes"])
-AM_CONDITIONAL([BUILD_EXAMPLE_CLIENTS],[test "x$ENABLED_EXAMPLES" = "xyes"])
 AM_CONDITIONAL([BUILD_INLINE],[test "x$ENABLED_INLINE" = "xyes"])
 AM_CONDITIONAL([BUILD_KEYGEN],[test "x$ENABLED_KEYGEN" = "xyes"])
 AM_CONDITIONAL([BUILD_SCP],[test "x$ENABLED_SCP" = "xyes"])
@@ -167,6 +180,8 @@ AM_CONDITIONAL([BUILD_FWD],[test "x$ENABLED_FWD" = "xyes"])
 AM_CONDITIONAL([BUILD_TERM],[test "x$ENABLED_TERM" = "xyes"])
 AM_CONDITIONAL([BUILD_SHELL],[test "x$ENABLED_SHELL" = "xyes"])
 AM_CONDITIONAL([BUILD_AGENT],[test "x$ENABLED_AGENT" = "xyes"])
+AM_CONDITIONAL([BUILD_EXAMPLE_SERVERS],[test "x$ENABLED_EXAMPLES" = "xyes"])
+AM_CONDITIONAL([BUILD_EXAMPLE_CLIENTS],[test "x$ENABLED_EXAMPLES" = "xyes"])
 
 AX_HARDEN_CC_COMPILER_FLAGS
 
@@ -200,6 +215,8 @@ AS_ECHO(["   * CPP Flags:                 $CPPFLAGS"])
 AS_ECHO(["   * Linker Flags:              $LDFLAGS"])
 AS_ECHO
 AS_ECHO(["   Features"])
+AS_ECHO(["   * Server Side Code:          $ENABLED_SERVER"])
+AS_ECHO(["   * Client Side Code:          $ENABLED_CLIENT"])
 AS_ECHO(["   * Inline Code:               $ENABLED_INLINE"])
 AS_ECHO(["   * keygen:                    $ENABLED_KEYGEN"])
 AS_ECHO(["   * psuedo-terminal:           $ENABLED_PTERM"])
