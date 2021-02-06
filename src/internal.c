@@ -2128,7 +2128,7 @@ static byte MatchIdLists(int side, const byte* left, word32 leftSz,
         for (i = 0; i < leftSz; i++) {
             for (j = 0; j < rightSz; j++) {
                 if (left[i] == right[j]) {
-#if 0
+#if 1
                     WLOG(WS_LOG_DEBUG, "MID: matched %s", IdToName(left[i]));
 #endif
                     return left[i];
@@ -2247,6 +2247,10 @@ static INLINE enum wc_HashType HashForId(byte id)
         case ID_ECDSA_SHA2_NISTP256:
             return WC_HASH_TYPE_SHA256;
 #endif
+#ifndef WOLFSSH_NO_RSA_SHA2_256
+        case ID_RSA_SHA2_256:
+            return WC_HASH_TYPE_SHA256;
+#endif
 
         /* SHA2-384 */
 #ifndef WOLFSSH_NO_ECDH_SHA2_NISTP384
@@ -2267,6 +2271,11 @@ static INLINE enum wc_HashType HashForId(byte id)
         case ID_ECDSA_SHA2_NISTP521:
             return WC_HASH_TYPE_SHA512;
 #endif
+#ifndef WOLFSSH_NO_RSA_SHA2_512
+        case ID_RSA_SHA2_512:
+            return WC_HASH_TYPE_SHA512;
+#endif
+
         default:
             return WC_HASH_TYPE_NONE;
     }
@@ -3078,7 +3087,10 @@ static int DoKexDhReply(WOLFSSH* ssh, byte* buf, word32 len, word32* idx)
         *idx = begin;
 
         /* Load in the server's public signing key */
-        sigKeyBlock_ptr->useRsa = ssh->handshake->pubKeyId == ID_SSH_RSA;
+        sigKeyBlock.useRsa =
+                ssh->handshake->pubKeyId == ID_SSH_RSA ||
+                ssh->handshake->pubKeyId == ID_RSA_SHA2_256 ||
+                ssh->handshake->pubKeyId == ID_RSA_SHA2_512;
 
         if (sigKeyBlock_ptr->useRsa) {
 #ifndef WOLFSSH_NO_RSA
@@ -6679,9 +6691,16 @@ int SendKexDhReply(WOLFSSH* ssh)
     if (ret == WS_SUCCESS) {
         WMEMSET(sigKeyBlock_ptr, 0, sizeof(struct wolfSSH_sigKeyBlockFull));
 
-        sigKeyBlock_ptr->useRsa = ssh->handshake->pubKeyId == ID_SSH_RSA;
-        sigKeyBlock_ptr->name = IdToName(ssh->handshake->pubKeyId);
-        sigKeyBlock_ptr->nameSz = (word32)strlen(sigKeyBlock_ptr->name);
+    WMEMSET(&sigKeyBlock, 0, sizeof sigKeyBlock);
+
+    sigKeyBlock.useRsa =
+        ssh->handshake->pubKeyId == ID_SSH_RSA ||
+        ssh->handshake->pubKeyId == ID_RSA_SHA2_256 ||
+        ssh->handshake->pubKeyId == ID_RSA_SHA2_512;
+    /* All flavors of RSA identify as ssh-rsa. */
+    sigKeyBlock.name = sigKeyBlock.useRsa ?
+            IdToName(ID_SSH_RSA) : IdToName(ssh->handshake->pubKeyId);
+    sigKeyBlock.nameSz = (word32)strlen(sigKeyBlock.name);
 
         switch (ssh->handshake->kexId) {
 #ifndef WOLFSSH_NO_DH_GROUP1_SHA1
