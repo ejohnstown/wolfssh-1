@@ -19,12 +19,12 @@ jobs:
     - name: brew
       run: brew install automake
     - name: build wolfSSL
-      run: ./autogen.sh && ./configure --prefix=$PATH/wolfssl --enable-ssh --enable-cryptonly && make check && make install
+      run: ./autogen.sh && ./configure --prefix=$PWD/wolfssl --enable-ssh --enable-cryptonly && make check && make install
     - uses: actions/checkout@v2
     - name: autogen
       run: ./autogen.sh
     - name: configure
-      run: ./configure LDFLAGS=-L./wolfssl/lib CPPFLAGS=-./wolfssl/include
+      run: ./configure LDFLAGS=-L$PWD/wolfssl/lib CPPFLAGS=-I$PWD/wolfssl/include
     - name: make
       run: make
     - name: make check
