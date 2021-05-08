@@ -16,11 +16,11 @@ jobs:
       with:
           repository: wolfSSL/wolfssl.git
           ref: master
+    - name: brew
+      run: brew install automake libtool
     - name: build wolfSSL
       run: ./autogen.sh && ./configure --prefix=/usr --enable-ssh --enable-cryptonly && make check && sudo make install
     - uses: actions/checkout@v2
-    - name: brew
-      run: brew install automake libtool
     - name: autogen
       run: ./autogen.sh
     - name: configure
