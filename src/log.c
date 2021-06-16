@@ -101,8 +101,35 @@ int wolfSSH_LogEnabled(void)
 
 #ifdef DEBUG_WOLFSSH
 #ifndef WOLFSSH_NO_DEFAULT_LOGGING_CB
+void DefaultLoggingCbEx(enum wolfSSH_LogLevel level,
+        enum wolfSSH_LogDomain domain, const char *const msgStr)
+{
+    char timeStr[24];
+    timeStr[0] = '\0';
+#ifndef WOLFSSH_NO_TIMESTAMP
+    {
+        time_t  current;
+        struct  tm local;
+
+        current = WTIME(NULL);
+        if (WLOCALTIME(&current, &local)) {
+            /* make pretty */
+            strftime(timeStr, sizeof(timeStr), "%F %T ", &local);
+        }
+    }
+#endif /* WOLFSSH_NO_TIMESTAMP */
+    #ifndef WOLFSSH_LOG_PRINTF
+    fprintf(stdout, "%s[%s](%s) %s\r\n",
+            timeStr, GetLevelStr(level), GetDomainStr(domain), msgStr);
+    #else
+    printf("%s[%s](%s) %s\r\n",
+            timeStr, GetLevelStr(level), GetDomainStr(domain), msgStr);
+    #endif
+}
+
+
 /* log level string */
-static const char* GetLogStr(enum wolfSSH_LogLevel level)
+static const char* GetOldLevelStr(enum wolfSSH_OldLogLevel level)
 {
     switch (level) {
         case WS_LOG_INFO:
@@ -134,6 +161,7 @@ static const char* GetLogStr(enum wolfSSH_LogLevel level)
     }
 }
 
+
 void DefaultLoggingCb(enum wolfSSH_LogLevel level, const char *const msgStr)
 {
     char timeStr[24];
@@ -151,38 +179,75 @@ void DefaultLoggingCb(enum wolfSSH_LogLevel level, const char *const msgStr)
     }
 #endif /* WOLFSSH_NO_TIMESTAMP */
     #ifndef WOLFSSH_LOG_PRINTF
-    fprintf(stdout, "%s[%s] %s\r\n", timeStr, GetLogStr(level), msgStr);
+    fprintf(stdout, "%s[%s] %s\r\n", timeStr, GetLevelStr(level), msgStr);
     #else
-    printf("%s[%s] %s\r\n", timeStr, GetLogStr(level), msgStr);
+    printf("%s[%s] %s\r\n", timeStr, GetLevelStr(level), msgStr);
     #endif
 }
 #endif /* WOLFSSH_NO_DEFAULT_LOGGING_CB */
 
 
-/* our default logger */
-void wolfSSH_Log(enum wolfSSH_LogLevel level, const char *const fmt, ...)
+void wolfSSH_Log_ex(enum wolfSSH_LogLevel level,
+        enum wolfSSH_LogDomain domain, const char *const fmt, ...)
 {
-    va_list vlist;
-    char    msgStr[WOLFSSH_DEFAULT_LOG_WIDTH];
+    char msgStr[WOLFSSH_DEFAULT_LOG_WIDTH];
+    va_list args;
 
     if (level < logLevel)
         return;   /* don't need to output */
 
-    /* format msg */
-    va_start(vlist, fmt);
-    WVSNPRINTF(msgStr, sizeof(msgStr), fmt, vlist);
-    va_end(vlist);
+    va_start(args, fmt);
+    WVSNPRINTF(msgStr, sizeof(msgStr), fmt, args);
+    va_end(args);
+
+    if (logFunctionEx)
+        logFunctionEx(level, domain, msgStr);
+}
+
+
+/* our default logger */
+void wolfSSH_Log(enum wolfSSH_LogLevel level, const char *const fmt, ...)
+{
+    char msgStr[WOLFSSH_DEFAULT_LOG_WIDTH];
+    va_list args;
+
+    if (level < logLevel)
+        return;   /* don't need to output */
+
+    va_start(args, fmt);
+    WVSNPRINTF(msgStr, sizeof(msgStr), fmt, args);
+    va_end(args);
 
     if (logFunction)
         logFunction(level, msgStr);
 }
 
 #else
+
+void DefaultLoggingCb_ex(enum wolfSSH_LogLevel level,
+        enum wolfSSH_LogDomain domain, const char *const msgStr)
+{
+    (void)level;
+    (void)domain;
+    (void)msgStr;
+}
+
+
 void DefaultLoggingCb(enum wolfSSH_LogLevel level, const char *const msgStr)
 {
     (void)level;
     (void)msgStr;
 }
+
+
+void wolfSSH_Log_ex(enum wolfSSH_LogLevel level,
+        enum wolfSSH_LogDomain domain, const char *const fmt, ...)
+{
+    (void)level;
+    (void)domain;
+    (void)fmt;
+}
+
 
 void wolfSSH_Log(enum wolfSSH_LogLevel level, const char *const fmt, ...)
 {
