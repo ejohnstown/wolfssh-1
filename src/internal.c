@@ -3087,7 +3087,7 @@ static int DoKexDhReply(WOLFSSH* ssh, byte* buf, word32 len, word32* idx)
         *idx = begin;
 
         /* Load in the server's public signing key */
-        sigKeyBlock.useRsa =
+        sigKeyBlock_ptr->useRsa =
                 ssh->handshake->pubKeyId == ID_SSH_RSA ||
                 ssh->handshake->pubKeyId == ID_RSA_SHA2_256 ||
                 ssh->handshake->pubKeyId == ID_RSA_SHA2_512;
@@ -6691,16 +6691,14 @@ int SendKexDhReply(WOLFSSH* ssh)
     if (ret == WS_SUCCESS) {
         WMEMSET(sigKeyBlock_ptr, 0, sizeof(struct wolfSSH_sigKeyBlockFull));
 
-    WMEMSET(&sigKeyBlock, 0, sizeof sigKeyBlock);
-
-    sigKeyBlock.useRsa =
+    sigKeyBlock_ptr->useRsa =
         ssh->handshake->pubKeyId == ID_SSH_RSA ||
         ssh->handshake->pubKeyId == ID_RSA_SHA2_256 ||
         ssh->handshake->pubKeyId == ID_RSA_SHA2_512;
     /* All flavors of RSA identify as ssh-rsa. */
-    sigKeyBlock.name = sigKeyBlock.useRsa ?
+    sigKeyBlock_ptr->name = sigKeyBlock_ptr->useRsa ?
             IdToName(ID_SSH_RSA) : IdToName(ssh->handshake->pubKeyId);
-    sigKeyBlock.nameSz = (word32)strlen(sigKeyBlock.name);
+    sigKeyBlock_ptr->nameSz = (word32)strlen(sigKeyBlock_ptr->name);
 
         switch (ssh->handshake->kexId) {
 #ifndef WOLFSSH_NO_DH_GROUP1_SHA1
