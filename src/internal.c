@@ -8603,7 +8603,6 @@ int SendUserAuthRequest(WOLFSSH* ssh, byte authId, int addSig)
             if (authId & WOLFSSH_USERAUTH_PASSWORD) {
                 cbRet = ssh->ctx->userAuthCb(WOLFSSH_USERAUTH_PASSWORD,
                         &authData, ssh->userAuthCtx);
-                printf("password cbRet = %d\n", cbRet);
                 if (cbRet != WOLFSSH_USERAUTH_SUCCESS) {
                     WLOG(WS_LOG_DEBUG, "SUAR: Couldn't get password");
                 }
@@ -8617,7 +8616,6 @@ int SendUserAuthRequest(WOLFSSH* ssh, byte authId, int addSig)
                     (authId & WOLFSSH_USERAUTH_PUBLICKEY)) {
                 cbRet = ssh->ctx->userAuthCb(WOLFSSH_USERAUTH_PUBLICKEY,
                         &authData, ssh->userAuthCtx);
-                printf("publickey cbRet = %d\n", cbRet);
                 if (cbRet != WOLFSSH_USERAUTH_SUCCESS) {
                     WLOG(WS_LOG_DEBUG, "SUAR: Couldn't get key");
                 }
